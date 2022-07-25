@@ -14,3 +14,4 @@ for (const file of functionFiles)
 client.handleEvents();
 client.handleCommands();
 client.login(token);
+// wot
