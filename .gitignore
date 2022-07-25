@@ -2,3 +2,4 @@
 Procfile
 ledgers/*
 ledger_schema.PNG
+node_modules
