@@ -1,5 +1,5 @@
-const { REST } = require('@discordjs/rest')
-const { Routes } = require('discord-api-types/v9')
+const { REST } = require("@discordjs/rest");
+const { Routes } = require("discord-api-types/v9");
 const fs = require(`fs`);
 
 module.exports = (client) => {
@@ -15,21 +15,20 @@ module.exports = (client) => {
         const command = require(`../../commands/${folder}/${file}`);
         commands.set(command.data.name, command);
         commandArray.push(command.data.toJSON());
-        console.log(`Command: ${command.data.name} has been passed though the handler`);
+        console.log(
+          `Command: ${command.data.name} has been passed though the handler`
+        );
       }
     }
 
-    const clientId = '1000132068161900564';
-    const guildId = '957038406804832326'; // ID for personal testing server
-    const rest = new REST({ version: 9}).setToken(process.env.token);
+    const clientId = "1000132068161900564";
+    const rest = new REST({ version: 9 }).setToken(process.env.token);
     try {
       console.log("Started refreshng application (/) commands.");
-      
-      // Remove guildID to have slash commands appear on every guild
-      await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
-        body: client.commandArray
-      });
-
+      await rest.put(
+        Routes.applicationCommands(clientId),
+        { body: client.commandArray, },
+      );
       console.log("Successfully reloaded application (/) commands.");
     } catch (error) {
       console.error(error);
