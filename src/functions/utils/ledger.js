@@ -9,7 +9,7 @@ function errorHandler(successMessage) {
   };
 }
 
-function getLedger(guild, db_ = undefined) {
+async function getLedger(guild, db_ = undefined) {
   var endOperation = false;
   if (db_) {
     return { endOperation: endOperation, db: db_ };
