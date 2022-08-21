@@ -16,7 +16,7 @@ function getLedger(guild, db_ = undefined) {
   } else {
     endOperation = true;
     if (!fs.existsSync(`./ledgers/${guild.id}.db`))
-      module.exports.newLedger(guild);
+      await module.exports.newLedger(guild);
 
     return {
       endOperation: endOperation,
