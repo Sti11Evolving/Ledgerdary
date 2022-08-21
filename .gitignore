@@ -1,5 +1,4 @@
 .env
-Procfile
 ledgers/*
 ledger_schema.PNG
-node_modules
+node_modules/
