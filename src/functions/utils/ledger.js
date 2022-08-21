@@ -10,19 +10,19 @@ function errorHandler(successMessage) {
 }
 
 async function getLedger(guild, db_ = undefined) {
-  var endOperation = false;
-  if (db_) {
-    return { endOperation: endOperation, db: db_ };
-  } else {
-    endOperation = true;
-    if (!fs.existsSync(`./ledgers/${guild.id}.db`))
-      await module.exports.newLedger(guild);
+    var endOperation = false;
+    if (db_) {
+      return { endOperation: endOperation, db: db_ };
+    } else {
+      endOperation = true;
+      if (!fs.existsSync(`./ledgers/${guild.id}.db`))
+        await module.exports.newLedger(guild);
 
-    return {
-      endOperation: endOperation,
-      db: new sqlite3.Database(`./ledgers/${guild.id}.db`, errorHandler()),
-    };
-  }
+       return {
+        endOperation: endOperation,
+        db: new sqlite3.Database(`./ledgers/${guild.id}.db`, errorHandler()),
+      };
+  };
 }
 
 function isNumeric(n) {
@@ -126,7 +126,7 @@ module.exports = {
       has_plural = has_plural ? has_plural : true;
     }
 
-    const { endOperation, db } = getLedger(guild, db_);
+    const { endOperation, db } = await getLedger(guild, db_);
 
     if (await module.exports.currenciesIsEmpty(guild, db)) {
       is_default = true;
@@ -181,7 +181,7 @@ module.exports = {
     has_plural,
     db_ = undefined
   ) {
-    const { endOperation, db } = getLedger(guild, db_);
+    const { endOperation, db } = await getLedger(guild, db_);
     return new Promise((resolve, reject) => {
       db.run(
         `UPDATE currencies SET name = $name, symbol = $symbol, is_default = $is_default, use_prefix = $use_prefix, has_space = $has_space, has_plural = $has_plural
@@ -205,7 +205,7 @@ module.exports = {
   },
 
   async editCurrencyDefault(guild, currency_id, is_default, db_ = undefined) {
-    const { endOperation, db } = getLedger(guild, db_);
+    const { endOperation, db } = await getLedger(guild, db_);
     return new Promise((resolve, reject) => {
       db.run(
         `UPDATE currencies SET is_default = $is_default
@@ -224,7 +224,7 @@ module.exports = {
   },
 
   async currenciesIsEmpty(guild, db_ = undefined) {
-    const { endOperation, db } = getLedger(guild, db_);
+    const { endOperation, db } = await getLedger(guild, db_);
     return new Promise((resolve, reject) => {
       db.get(
         `SELECT NOT EXISTS(SELECT 1 FROM currencies) as is_empty;`,
@@ -238,7 +238,7 @@ module.exports = {
   },
 
   async deleteCurrency(guild, currency_id, db_ = undefined) {
-    const { endOperation, db } = getLedger(guild, db_);
+    const { endOperation, db } = await getLedger(guild, db_);
     return new Promise((resolve, reject) => {
       db.run(
         `DELETE FROM currencies
@@ -268,7 +268,7 @@ module.exports = {
   },
 
   async getCurrencies(guild, db_ = undefined) {
-    const { endOperation, db } = getLedger(guild, db_);
+    const { endOperation, db } = await getLedger(guild, db_);
     return new Promise((resolve, reject) => {
       db.all("SELECT * FROM currencies", (error, currencies) => {
         if (error) reject(error);
@@ -282,7 +282,7 @@ module.exports = {
     if (name_id == undefined) {
       return module.exports.getDefaultCurrency(guild, db_);
     }
-    const { endOperation, db } = getLedger(guild, db_);
+    const { endOperation, db } = await getLedger(guild, db_);
     return new Promise((resolve, reject) => {
       // If name_id is a number, retrieve by id
       if (isNumeric(name_id)) {
@@ -316,7 +316,7 @@ module.exports = {
   },
 
   async getDefaultCurrency(guild, db_ = undefined) {
-    const { endOperation, db } = getLedger(guild, db_);
+    const { endOperation, db } = await getLedger(guild, db_);
     return new Promise((resolve, reject) => {
       db.get(
         `SELECT * FROM currencies WHERE is_default = 1`,
@@ -356,7 +356,7 @@ module.exports = {
     reason,
     db_ = undefined
   ) {
-    const { endOperation, db } = getLedger(guild, db_);
+    const { endOperation, db } = await getLedger(guild, db_);
     return new Promise((resolve, reject) => {
       db.run(
         `INSERT INTO transactions (interaction_id, buyer_borrower_id, seller_lender_id, currency_id, amount, time_offered, is_loan, is_pending, reason) 
@@ -383,7 +383,7 @@ module.exports = {
 
   async resolvePendingTransaction(guild, interaction_id, db_ = undefined) {
     timestamp = Date.now();
-    const { endOperation, db } = getLedger(guild, db_);
+    const { endOperation, db } = await getLedger(guild, db_);
     return new Promise((resolve, reject) => {
       db.run(
         "UPDATE transactions SET is_pending = 0, time_accepted = $time WHERE interaction_id = $interaction_id",
@@ -398,7 +398,7 @@ module.exports = {
   },
 
   async removeTransactions(guild, interaction_id, db_ = undefined) {
-    const { endOperation, db } = getLedger(guild, db_);
+    const { endOperation, db } = await getLedger(guild, db_);
     return new Promise((resolve, reject) => {
       db.run(
         "DELETE FROM transactions WHERE interaction_id = $interaction_id",
@@ -419,7 +419,7 @@ module.exports = {
     const offeringUser = interaction.message.interaction.user;
     if (member.id == offeringUser.id) return false;
 
-    const { db } = getLedger(interaction.guild, undefined);
+    const { db } = await getLedger(interaction.guild, undefined);
     return new Promise((resolve, reject) => {
       db.get(
         "SELECT buyer_borrower_id, seller_lender_id FROM transactions WHERE interaction_id = $interaction_id",
@@ -445,7 +445,7 @@ module.exports = {
     const offeringUser = interaction.message.interaction.user;
     if (member.id == offeringUser.id) return true;
 
-    const { db } = getLedger(interaction.guild, undefined);
+    const { db } = await getLedger(interaction.guild, undefined);
     return new Promise((resolve, reject) => {
       db.get(
         "SELECT buyer_borrower_id, seller_lender_id FROM transactions WHERE interaction_id = $interaction_id",
@@ -466,7 +466,7 @@ module.exports = {
 
   async getBalanceTarget(interaction, target_id, db_ = undefined) {
     user = interaction.user;
-    const { endOperation, db } = getLedger(interaction.guild, db_);
+    const { endOperation, db } = await getLedger(interaction.guild, db_);
     var balances = {};
     return new Promise((resolve, reject) => {
       db.all(
@@ -501,7 +501,7 @@ module.exports = {
 
   async getDebtsTarget(interaction, target_id, db_ = undefined) {
     user = interaction.user;
-    const { endOperation, db } = getLedger(interaction.guild, db_);
+    const { endOperation, db } = await getLedger(interaction.guild, db_);
     var debts = {};
     return new Promise((resolve, reject) => {
       db.all(
@@ -534,7 +534,7 @@ module.exports = {
 
   async getBalance(interaction, db_ = undefined) {
     user = interaction.user;
-    const { endOperation, db } = getLedger(interaction.guild, db_);
+    const { endOperation, db } = await getLedger(interaction.guild, db_);
     var balances = {};
     return new Promise((resolve, reject) => {
       db.all(
@@ -566,7 +566,7 @@ module.exports = {
 
   async getDebts(interaction, db_ = undefined) {
     user = interaction.user;
-    const { endOperation, db } = getLedger(interaction.guild, db_);
+    const { endOperation, db } = await getLedger(interaction.guild, db_);
     var all_debts = {};
     return new Promise((resolve, reject) => {
       db.all(
