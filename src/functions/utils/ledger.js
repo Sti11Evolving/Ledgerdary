@@ -10,19 +10,19 @@ function errorHandler(successMessage) {
 }
 
 async function getLedger(guild, db_ = undefined) {
-    var endOperation = false;
-    if (db_) {
-      return { endOperation: endOperation, db: db_ };
-    } else {
-      endOperation = true;
-      if (!fs.existsSync(`./ledgers/${guild.id}.db`))
-        await module.exports.newLedger(guild);
+  if (db_) return { endOperation: false, db: db_ };
 
-       return {
-        endOperation: endOperation,
-        db: new sqlite3.Database(`./ledgers/${guild.id}.db`, errorHandler()),
-      };
-  };
+  if (!fs.existsSync(`./ledgers/${guild.id}.db`)) {
+    module.exports.newLedger(guild);
+    await new Promise(resolve => setTimeout(resolve, 50))
+    return getLedger(guild, db_);
+  } else {
+    console.log("success!");
+    return {
+      endOperation: true,
+      db: new sqlite3.Database(`./ledgers/${guild.id}.db`, errorHandler()),
+    };
+  }
 }
 
 function isNumeric(n) {
@@ -57,12 +57,6 @@ function isAdmin(member) {
 
 module.exports = {
   async newLedger(guild) {
-    const db = new sqlite3.Database(
-      `./ledgers/${guild.id}.db`,
-      errorHandler(),
-      sqlite3.OPEN_CREATE
-    );
-
     const createTablesQuery = `
     CREATE TABLE currencies
     (
@@ -90,8 +84,16 @@ module.exports = {
       [reason] text
     );`;
 
-    db.exec(createTablesQuery, errorHandler());
-    db.close();
+    return new Promise((resolve, reject) => {
+      const db = new sqlite3.Database(
+        `./ledgers/${guild.id}.db`,
+        errorHandler(),
+        sqlite3.OPEN_CREATE
+      );
+      db.exec(createTablesQuery, errorHandler());
+      db.close();
+      resolve();
+    });
   },
 
   async deleteLedger(guild) {
@@ -582,7 +584,6 @@ module.exports = {
           if (error) reject(error);
           if (!transactions.length) resolve(undefined);
           for (const transaction of transactions) {
-
             const other =
               transaction.buyer_borrower_id == user.id
                 ? transaction.seller_lender_id
